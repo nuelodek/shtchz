@@ -1,121 +1,95 @@
 // controllers/exampleController.js
-const mysqlService = require('./sqlService.js');
-  function getSignup(req) {
-      try {
-          const = new user 
-          
-          { email, password, firstname, lastname, accounttype, dateofbirth } = req.body
+const mysqlService = require('../config/sqlService.js');
+const userservice = require('../services/userservice.js');
+const mysqlDB = require('../services/sqlDB.js');
 
-          if (!email || !password || !firstname || !lastname || !accounttype || !dateofbirth) {
-              return {
-                  success: false,
-                  message: 'All fields are required'
-              }
-          }
 
-          if (accounttype !== 'personal' && accounttype !== 'business') {
-              return {
-                  success: false,
-                  message: 'Invalid account type'
-              }
-          }
+    function getSignup(req) {
+        try {
+            const {email, phone, username, password, firstname, lastname, accounttype, dateofbirth } = req.body
 
-          const newUser = {
-              email,
-              password,
-              firstname,
-              lastname,
-              accounttype,
-              dateofbirth,
-              createdAt: new Date()
-          }
+            if ((!email && !phone && !username) || !password || !firstname || !lastname || !accounttype || !dateofbirth) {
+                return {
+                    success: false,
+                    message: 'All fields are required including either email, phone, or username'
+                }
+            }
 
-          const userExists = getUserExist(newUser)
-    
-          if (!userExists.exists) {
-              try {
-                  const savedUser = mysqlService.createUser(newUser)
-                  console.log('User registered successfully:', savedUser)
-                  return {
-                      success: true,
-                      message: 'User registered successfully',
-                      data: newUser
+            if (accounttype !== 'personal' && accounttype !== 'business') {
+                return {
+                    success: false,
+                    message: 'Invalid account type'
+                }
+            }
+
+            const newUser = {
+                email,
+                phone,
+                username,
+                password,
+                firstname,
+                lastname,
+                accounttype,
+                dateofbirth,
+                createdAt: new Date()
+            }
+
+
+                  const userExists = getUser(newUser)
+  
+                  if (userExists.success) {
+                      return {
+                          success: false,
+                          message: 'User already exists'
+
+
+                      }
                   }
-              } catch (error) {
-                  console.error('Error in signup:', error)
-                  throw error
-              }
-          } else {
-              return {
-                  success: false,
-                  message: userExists.message
-              }
+
+            const savedUser = mysqlDB.createUser(newUser)
+            console.log(savedUser);
+          
+            return {
+                success: true,
+                message: 'User registered successfully',
+                data: savedUser
+            }
+
+        } catch (error) {
+            console.error('Error in signup:', error)
+            throw error
+        }
+    }
+  function getUserExist(newuser) {
+      try {
+          const { email, phone, username } = newuser
+          const existingUser = mysqlService.getAllRecordsByParametercomplex('users', '*', `email = '${email}' OR phone = '${phone}' OR username = '${username}'`)
+    
+          return {
+              exists: !!existingUser,
+              message: existingUser ? 'User already exists' : 'User does not exist'
           }
       } catch (error) {
-          console.error('Error in signup:', error)
+          console.error('Error checking if user exists:', error)
           throw error
       }
   }
-    function getUserExist(newuser) {
+    function getUser(newuser) {
         try {
-                const { email, phone, username } = newuser;
-                
-                // Query database for existing user
-    const existingUser = mysqlService.getAllRecordsByParametercomplex('users', '*', `email = '${email}' OR phone = '${phone}' OR username = '${username}'`);
-        
-                if (existingUser) {
-                    return {
-                        exists: true,
-                        message: 'User already exists'
-                    };
-                }
-        
-                return {
-                    exists: false,
-                    message: 'User does not exist'
-                };
-        
-            } catch (error) {
-                console.error('Error checking if user exists:', error);
-                throw error;
-            }
-        
-    }
-    
-function getUser(user) {
-try {
-            const { email, phone, username } = user;
-            
-            // Query database for user
-            const foundUser = mysqlService.findUser({
-                $or: [
-                    { email: email },
-                    { phone: phone },
-                    { username: username }
-                ]
-            });
-    
-            if (!foundUser) {
-                return {
-                    success: false,
-                    message: 'User not found'
-                };
-            }
-    
+            const { email, phone, username } = newuser
+            const foundUser = mysqlService.getAllRecordsByParametercomplex('users', '*', `email = '${email}' OR phone = '${phone}' OR username = '${username}'`)
+
             return {
-                success: true,
-                message: 'User found successfully',
+                success: !!foundUser,
+                message: foundUser ? 'User found successfully' : 'User not found',
                 data: foundUser
-            };
-    
+            }
         } catch (error) {
-            console.error('Error getting user:', error);
-            throw error;
+            console.error('Error getting user:', error)
+            throw error
         }
-
     }
-
-
+  /// dont go here yet
     function sendOtp(user) {
 
     const usertosendotp = userservice.getUser(user);
