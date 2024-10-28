@@ -1,13 +1,18 @@
 const express = require('express');
+const bodyParser = require('body-parser');
+const dotenv = require('dotenv');
+const authRoutes = require('./routes/authRoute');
+
+
+dotenv.config();
+
 const app = express();
-// const exampleRoutes = require('./routes/exampleRoutes');
+const port = process.env.PORT || 3000;
 
-// app.set('view engine', 'ejs'); // Set view engine to EJS
-// app.use(express.json());
-// app.use(express.static('public'));
+app.use(bodyParser.json());
 
-// app.use('/example', exampleRoutes);
+app.use('/auth/', authRoutes);
 
-app.listen(3000, () => {
-    console.log('Server running on http://localhost:3000');
+app.listen(port, () => {
+  console.log(`Server running on port ${port}`);
 });

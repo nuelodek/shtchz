@@ -1,0 +1,41 @@
+
+{
+    "user": {
+        "email": "string",
+        "phone": "string",
+        "password": "string",
+        "firstname": "string",
+        "lastname": "string",
+        "username": "string",
+        "accounttype": "string",
+        "dateofbirth": "string",
+        "interests": ["string"],
+        "intentions": ["string"],
+        "occupation": "string",
+        "location": {
+            "city": "string",
+            "country": "string",
+            "coordinates": {
+                "latitude": "number",
+                "longitude": "number"
+            }
+        },
+        "profilePicture": "string",
+        "bio": "string",
+        "theme": "string",
+        "notifications": "boolean",
+        "privacy": "boolean",
+        "firsttimeSignin": "boolean",
+        "createdAt": "date"
+    },
+    "otp": {
+        "code": "number",
+        "email": "string",
+        "phone": "string"
+    },
+    "prediction": {
+        "content": "string",
+        "userId": "string",
+        "createdAt": "date"
+    }
+}
