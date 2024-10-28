@@ -60,3 +60,27 @@ CREATE TABLE user_followers (
     FOREIGN KEY (followingId) REFERENCES users(id),
     UNIQUE KEY unique_follower (followerId, followingId)
 );
+CREATE TABLE predictions (
+        id SERIAL PRIMARY KEY,
+        email TEXT NOT NULL,
+        title TEXT NOT NULL,
+        description TEXT,
+        category TEXT,
+        tags TEXT[],
+        start_date DATE,
+        end_date DATE,
+        outcome TEXT DEFAULT 'unknown',
+        outcome_date DATE,
+        outcome_description TEXT,
+        outcome_image TEXT,
+        outcome_video TEXT,
+        outcome_audio TEXT,
+        outcome_text TEXT,
+        outcome_location TEXT,
+        outcome_location_image TEXT,
+        outcome_location_video TEXT,
+        outcome_location_audio TEXT,
+        outcome_location_text TEXT,
+        outcome_location_description TEXT,
+        outcome_location_description_image TEXT
+);

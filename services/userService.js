@@ -1,179 +1,351 @@
 // controllers/exampleController.js
 const mysqlService = require('../config/sqlService.js');
-const userservice = require('../services/userservice.js');
 const mysqlDB = require('../services/sqlDB.js');
 
 
-    function getSignup(req) {
-        try {
-            const {email, phone, username, password, firstname, lastname, accounttype, dateofbirth } = req.body
+async function getSignup(req) {
+    try {
+        const { email, phone, username, password, firstname, lastname, accounttype, dateofbirth } = req.body;
 
-            if ((!email && !phone && !username) || !password || !firstname || !lastname || !accounttype || !dateofbirth) {
-                return {
-                    success: false,
-                    message: 'All fields are required including either email, phone, or username'
-                }
-            }
-
-            if (accounttype !== 'personal' && accounttype !== 'business') {
-                return {
-                    success: false,
-                    message: 'Invalid account type'
-                }
-            }
-
-            const newUser = {
-                email,
-                phone,
-                username,
-                password,
-                firstname,
-                lastname,
-                accounttype,
-                dateofbirth,
-                createdAt: new Date()
-            }
-
-
-                  const userExists = getUser(newUser)
-  
-                  if (userExists.success) {
-                      return {
-                          success: false,
-                          message: 'User already exists'
-
-
-                      }
-                  }
-
-            const savedUser = mysqlDB.createUser(newUser)
-            console.log(savedUser);
-          
+        if ((!email && !phone && !username) || !password || !firstname || !lastname || !accounttype || !dateofbirth) {
             return {
-                success: true,
-                message: 'User registered successfully',
-                data: savedUser
-            }
-
-        } catch (error) {
-            console.error('Error in signup:', error)
-            throw error
+                success: false,
+                message: 'All fields are required including either email, phone, or username'
+            };
         }
+
+        if (accounttype !== 'personal' && accounttype !== 'business') {
+            return {
+                success: false,
+                message: 'Invalid account type'
+            };
+        }
+
+
+        // const passwordValidation = await validatePassword(password);
+        // if (!passwordValidation.isValid) {
+        //     return {
+        //         success: false,
+        //         message: passwordValidation.message || 'Password validation failed'
+        //     };
+        // }
+
+        const newUser = {
+            email,
+            phone,
+            username,
+            password,
+            firstname,
+            lastname,
+            accounttype,
+            dateofbirth,
+            createdAt: new Date()
+        };
+
+        const userCheck = await getUser(newUser);
+
+        if (userCheck.exists) {
+            return {
+                success: false,
+                message: userCheck.message
+            };
+        }
+
+        const savedUser = await mysqlDB.createUser(newUser);
+        
+        return {
+            success: true,
+            message: 'User registered successfully',
+            data: savedUser
+        };
+
+    } catch (error) {
+        console.error('Error in signup:', error);
+        throw error;
     }
-  function getUserExist(newuser) {
-      try {
-          const { email, phone, username } = newuser
-          const existingUser = mysqlService.getAllRecordsByParametercomplex('users', '*', `email = '${email}' OR phone = '${phone}' OR username = '${username}'`)
-    
-          return {
-              exists: !!existingUser,
-              message: existingUser ? 'User already exists' : 'User does not exist'
+}
+
+// Async function to check if a user already exists
+async function getUser(newUser) {
+    const { email, phone, username } = newUser;
+    let whereClause = '';
+
+    if (email) whereClause += `email = '${email}'`;
+    if (phone) whereClause += whereClause ? ` OR phone = '${phone}'` : `phone = '${phone}'`;
+    if (username) whereClause += whereClause ? ` OR username = '${username}'` : `username = '${username}'`;
+
+    const userExists = await mysqlService.getAllRecordsWhere('users', '*', whereClause);
+
+    if (userExists && userExists.length > 0) {
+        let message = 'User already exists with';
+        if (userExists[0].email === email) message += ' email';
+        if (userExists[0].phone === phone) message += ' phone';
+        if (userExists[0].username === username) message += ' username';
+        return { exists: true, message };
+    }
+    return { exists: false };
+}
+                    
+          
+
+    async function sendOtp(req) {
+    try {
+    const { email, phone } = req.body;
+
+    if (!email && !phone) {
+        return {
+            success: false,
+            message: 'Email or phone is required'
+        };
+    }
+
+    const user = { email, phone };
+    const userToSendOtp = await mysqlDB.getUser(user);
+
+    if (!userToSendOtp) {
+        return {
+            success: false,
+            message: 'User not found'
+        };
+    }
+
+    // Generate OTP
+    const code = Math.floor(1000000 + Math.random() * 900000);
+    console.log(code);
+    const sendOtpToEmail = async (email, code) => {
+        console.log(`Sending OTP ${code} to ${email}`);
+        return true;
+    };
+
+    const sendOtpToPhone = async (phone, code) => {
+        console.log(`Sending OTP ${code} to ${phone}`);
+        return true;
+    };
+
+    if (email) {
+        await sendOtpToEmail(email, code);
+    }
+
+    if (phone) {
+        await sendOtpToPhone(phone, code);
+    }
+
+    return {
+        success: true,
+        message: 'OTP sent successfully'
+    };
+
+    } catch (error) {
+    console.error('Error sending OTP:', error);
+    throw error;
+    }
+}
+
+
+
+async function getSignin(req) {
+    try {
+        const { email, phone, username, password } = req.body;
+
+        if (!email && !phone && !username) {
+            return {
+                success: false,
+                message: 'All fields are required including either email, phone, or username'
+            };
+        }
+        if (!password) {
+            return {
+                success: false,
+                message: 'Password is required'
+            };
+        }
+
+        const user = { email, phone, username, password };
+        const userToSignin = await mysqlDB.getUser(user);
+        if (!userToSignin) {
+            return {
+                success: false,
+                message: 'User not found'
+            };
+        }
+        const isPasswordValid = await mysqlDB.comparePassword(password, userToSignin.password);
+        if (!isPasswordValid) {
+            return {
+                success: false,
+                message: 'Invalid password'
+            };
+        }
+        return {
+            success: true,
+            message: 'User signed in successfully',
+            data: userToSignin
+        };
+    } catch (error) {
+        console.error('Error signing in:', error);
+        throw error;
+    }
+}
+
+
+async function validatePassword(user) {
+    try {
+        const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+        const isPasswordValid = passwordRegex.test(user.password);
+        if (!isPasswordValid) {
+            return {
+                success: false,
+                message: 'Password must contain minimum 8 characters with at least 1 uppercase, 1 lowercase, 1 number and 1 special character'
+            };
+        }
+        return {
+            success: true,
+            message: 'Valid password'
+        };
+    } catch (error) {
+        console.error('Error validating password:', error);
+        throw error;
+    }
+}
+  function forgetPassword(user) {      try {
+          const { email, phone } = user;
+          if (!email && !phone) {
+              return {
+                  success: false,
+                  message: 'Email or phone is required'
+              };
           }
+
+          const generateOtp = () => {
+              const otp = Math.floor(100000 + Math.random() * 900000);
+              return otp;
+          };
+
+          const resetPassword = () => {
+              const newPassword = Math.random().toString(36).slice(-8);
+              return newPassword;
+          };
+
+          const otp = generateOtp();
+          const tempPassword = resetPassword();
+
+          return {
+              success: true,
+              message: 'OTP sent successfully',
+              data: { otp, tempPassword }
+          };
+
       } catch (error) {
-          console.error('Error checking if user exists:', error)
-          throw error
+          console.error('Error in forget password:', error);
+          throw error;
       }
   }
-    function getUser(newuser) {
-        try {
-            const { email, phone, username } = newuser
-            const foundUser = mysqlService.getAllRecordsByParametercomplex('users', '*', `email = '${email}' OR phone = '${phone}' OR username = '${username}'`)
 
-            return {
-                success: !!foundUser,
-                message: foundUser ? 'User found successfully' : 'User not found',
-                data: foundUser
-            }
-        } catch (error) {
-            console.error('Error getting user:', error)
-            throw error
-        }
-    }
-  /// dont go here yet
-    function sendOtp(user) {
-
-    const usertosendotp = userservice.getUser(user);
-    
-    if (usertosendotp && (usertosendotp.data.email || usertosendotp.data.phone))
-         
+// function pickInterests(user, intrests) {
 
 
-    try {
-        const { email, phone } = req.body
-
-        if (!email && !phone) {
-            return res.status(400).json({ error: 'Email or phone is required' })
-        }
-
-        // Generate OTP
-    const code = Math.floor(1000000 + Math.random() * 9000000)
-    const sendOtptoEmail = async (email, code) => {
-
-        // Send OTP via email
-         console.log(`Sending OTP ${code} to ${email}`)
-         return true
-     }
-
-     const sendOtptoPhone = async (phone, code) => {
-
-        // Send OTP via phone
-         console.log(`Sending OTP ${code} to ${phone}`)
-         return true
-     }
-
-     console.log(`Sending OTP ${code} to ${email}`)
-     return true
- } catch (error) {
-     console.error('Error sending OTP:', error)
-     throw error
- }
-
-}
+//     const getUser = () => {
+//         const interests = [
+//             "football",
+//             "basketball",
+//             "tennis",
+//             "cricket",
+//             "hockey",
+//             "badminton",
+//             "table tennis",
+//             "volleyball",
+//         ]
 
 
-function getRegisteredUser(email, phone) {
+// }
 
-}
-
-function getSignin(req, res) {
-    res.render('signin');
-}
-
-function validatePassword(user) {
-   
-}
-
-function forgetPassword(user) {
-
-}
-
-function resetPassword(user) {
-
-}
-
-function pickInterests(user) {
-
-}
+// }
 
 function pickUsername(user) {
+    try {
+        const { email, phone } = req.body;
+        let userQuery;
+        
+        if (email) {
+            userQuery = { email };
+        } else if (phone) {
+            userQuery = { phone };
+        } else {
+            throw new Error('Either email or phone is required');
+        }
 
-    const getUser = () => {
-        const username = randomize(user.firstname + user.lastname) + alphanumeric3
-        return username
+        const existingUser = findUser(userQuery);
+        if (!existingUser) {
+            throw new Error('User not found');
+        }
+        
+        const username = randomize(existingUser.firstname + existingUser.lastname) + generateAlphanumeric(3);
+        // existingUser.username = username;
+        // updateUser(existingUser);
+        
+        return {
+            success: true,
+            username: username
+        };
+    } catch (error) {
+        console.error('Error in picking username:', error);
+        throw error;
     }
-
 }
 function addOccupation(user) {
+    try {
+        const { email, phone, occupation } = req.body
+        
+        let userQuery
+        if (email) {
+            userQuery = { email }
+        } else if (phone) {
+            userQuery = { phone }
+        } else {
+            throw new Error('Either email or phone is required')
+        }
 
+        const existingUser =  getUserFromDatabase(userQuery)
+        
+        if (!existingUser) {
+            throw new Error('User not found')
+        }
+
+        existingUser.occupation = occupation
+         updateUserInDatabase(existingUser)
+
+        return existingUser
+    } catch (error) {
+        throw error
+    }
 }
 
-function customizeExperience(user) { 
-   const notificationAndPrivacyOptions = {
-       notifications: false,
-       privacy: false
-   }
+// function customizeExperience(userexperience) { 
 
-}
+
+//     const userexperience = {
+//         firstname: 'John',
+//         lastname: 'Doe',
+//         email: 'john.doe@example.com',
+//         phone: '1234567890',
+//         password: 'password123',
+//         occupation: 'Software Engineer',
+//         interests: ['football', 'basketball', 'tennis'],
+//         notifications: true,
+//         privacy: true,
+//         firsttimeSignin: true,
+//         username: 'johndoe',
+//         profilePicture: 'profile_picture.jpg',
+//         bio: 'Hello, I am John Doe.',
+//         location: 'New York, USA',
+//         accountType: 'free',
+//         accountType: 'premium'
+//     }
+//    const notificationAndPrivacyOptions = {
+//        notifications: false,
+//        privacy: false
+//    }
+
+// }
 
 function signInflow(user) {
     
@@ -205,21 +377,6 @@ function getLocation (user) {
 
 }
 
-
-function pickInterests(user) {
-
-    const interests = [
-        "football",
-        "baseball", 
-        "news",
-        "american football",
-        "handball",
-        "cricket",
-        "boxing"
-    ]
-    
-    return interests
-}
 function pickIntention(user) {
 
     const intentions = [
@@ -229,14 +386,21 @@ function pickIntention(user) {
         "Peer-to-peer prediction exchange"
     ]
 
-    return intentions}
-
-function suggestFollow (user) {
+    return intentions
 
 }
-    
 
-function pickTheme(user) {
+
+    async function suggestFollow(req) {
+      try {
+         const { email, phone } = req.body;
+          return await mysqlDB.fetchPeopletoFollow({ email, phone });
+      } catch (error) {
+          throw error;
+      }
+    }
+
+    function pickTheme(user) {
     const themes = [
         "black",
         "white"
@@ -244,31 +408,54 @@ function pickTheme(user) {
     return themes
 }
 
-function composePrediction(user) {
 
+  async function composePrediction(req) {
+     
+    try {
+        const { email, phone } = req.body;
+        let userQuery;
+
+        if (email) {
+            userQuery = { email };
+        } else if (phone) {
+            userQuery = { phone };
+        } else {
+            throw new Error('Either email or phone is required');
+        }
+
+        const prediction = req.body;
+        return await mysqlDB.createPredictions(prediction);
+
+    } catch (error) {
+        throw error;
+    }
 }
+function generateAuthToken(user) {
+
+      const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+      return token;
+
+
+    }
+
 
 module.exports = {
-    getUserExist,
-    getUser,
     getSignup,
+    getUser,
     getSignin,
     forgetPassword,
-    getRegisteredUser,
     sendOtp,
-    resetPassword,
     validatePassword,
     pickUsername,
     addOccupation,
-    customizeExperience,
     signInflow,
     uploadProfilePicture,
     addBio,
     addLocation,
     getLocation,
-    pickInterests,
     pickIntention,
     suggestFollow,
     pickTheme,
-    composePrediction
-}
+    composePrediction,
+    generateAuthToken
+};
