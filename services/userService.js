@@ -1,10 +1,12 @@
 // controllers/exampleController.js
 const mysqlService = require('./sqlService.js');
-  function getSignup(newuser) {
+  function getSignup(req) {
       try {
-          const { email, phone, password, firstname, lastname, username, accounttype, dateofbirth } = newuser
+          const = new user 
+          
+          { email, password, firstname, lastname, accounttype, dateofbirth } = req.body
 
-          if (!email || !phone || !password || !firstname || !lastname || !username || !accounttype || !dateofbirth) {
+          if (!email || !password || !firstname || !lastname || !accounttype || !dateofbirth) {
               return {
                   success: false,
                   message: 'All fields are required'
@@ -20,11 +22,9 @@ const mysqlService = require('./sqlService.js');
 
           const newUser = {
               email,
-              phone,
               password,
               firstname,
               lastname,
-              username,
               accounttype,
               dateofbirth,
               createdAt: new Date()
@@ -56,18 +56,12 @@ const mysqlService = require('./sqlService.js');
           throw error
       }
   }
-    function getUserExist(user) {
+    function getUserExist(newuser) {
         try {
-                const { email, phone, username } = user;
+                const { email, phone, username } = newuser;
                 
                 // Query database for existing user
-                const existingUser = mysqlService.findUser({
-                    $or: [
-                        { email: email },
-                        { phone: phone },
-                        { username: username }
-                    ]
-                });
+    const existingUser = mysqlService.getAllRecordsByParametercomplex('users', '*', `email = '${email}' OR phone = '${phone}' OR username = '${username}'`);
         
                 if (existingUser) {
                     return {
@@ -120,9 +114,15 @@ try {
         }
 
     }
-function sendOtp(user) {
+
+
+    function sendOtp(user) {
 
     const usertosendotp = userservice.getUser(user);
+    
+    if (usertosendotp && (usertosendotp.data.email || usertosendotp.data.phone))
+         
+
 
     try {
         const { email, phone } = req.body

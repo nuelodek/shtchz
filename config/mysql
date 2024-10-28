@@ -1,22 +1,21 @@
 const mysql = require("mysql2");
 const dotenv = require('dotenv');
 
-// Load environment variables from .env file
 const result = dotenv.config();
 if (result.error) {
   console.error("Error loading .env file:", result.error);
-  process.exit(1); // Exit the process if .env file is not loaded
+  process.exit(1); 
 }
 
-// Create a connection pool to the database
 const pool = mysql.createPool({
-  host: process.env.MYSQL_HOST,
-  user: process.env.MYSQL_USER,
-  password: process.env.MYSQL_PASSWORD,
-  database: process.env.MYSQL_DATABASE,
-  // connectionLimit: 10, // Adjust as needed
-  // waitForConnections: true, // Wait for connections if the pool is full
-  // queueLimit: 0 // Unlimited queue for waiting connections
+  host: process.env.MYSQL_HOST,         
+  user: process.env.MYSQL_USER,         
+  password: process.env.MYSQL_PASSWORD,  
+  database: process.env.MYSQL_DATABASE,  
+  port: process.env.MYSQL_PORT,          
+  connectionLimit: 10,                  
+  waitForConnections: true,             
+  queueLimit: 0                          
 });
 
 // Test the connection to ensure it's working
@@ -26,8 +25,7 @@ pool.getConnection((err, connection) => {
     process.exit(1);
   }
   console.log("Database connection established.");
-  connection.release();
+  connection.release(); 
 });
 
-// Export the pool for use in services
 module.exports = pool;
